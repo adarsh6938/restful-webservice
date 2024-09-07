@@ -30,12 +30,12 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# Middleware for logging requests and responses
+# Middleware for logging requests and responses, masking sensitive data
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     start_time = time.time()
 
-    # Log the request
+    # Log the request method and URL (without sensitive data)
     logger.info(f"Request: {request.method} {request.url}")
 
     # Process the request
@@ -50,7 +50,7 @@ async def log_requests(request: Request, call_next):
     logger.info(f"Response: {response.status_code} for {request.method} {request.url} in {process_time:.4f}s")
     return response
 
-# Authentication setup
+# Authentication setup (masking sensitive credentials)
 security = HTTPBasic()
 USERNAME = "admin"
 PASSWORD = "password"
@@ -59,11 +59,14 @@ def authenticate(credentials: HTTPBasicCredentials = Depends(security)):
     correct_username = secrets.compare_digest(credentials.username, USERNAME)
     correct_password = secrets.compare_digest(credentials.password, PASSWORD)
     if not (correct_username and correct_password):
+        logger.warning(f"Authentication failed for user: {credentials.username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials",
             headers={"WWW-Authenticate": "Basic"},
         )
+    # Log only username, avoid logging the password
+    logger.info(f"User authenticated: {credentials.username}")
     return credentials
 
 # Dependency for database session
@@ -77,7 +80,10 @@ def get_db():
 # Instrumentation for metrics and tracing
 Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 provider = TracerProvider()
-jaeger_exporter = JaegerExporter(agent_host_name="jaeger", agent_port=6831)
+jaeger_exporter = JaegerExporter(
+    agent_host_name="localhost",  # Ensure this hostname is correct
+    agent_port=6831
+)
 span_processor = BatchSpanProcessor(jaeger_exporter)
 provider.add_span_processor(span_processor)
 FastAPIInstrumentor.instrument_app(app, tracer_provider=provider)
@@ -85,16 +91,23 @@ FastAPIInstrumentor.instrument_app(app, tracer_provider=provider)
 # Versioned API router
 router_v1 = APIRouter(prefix="/v1")
 
-# POST: Create a new customer
+# Mask email address for privacy
+def mask_email(email: str) -> str:
+    username, domain = email.split("@")
+    masked_username = username[0] + "***" + username[-1]
+    return masked_username + "@" + domain
+
+# POST: Create a new customer (avoid logging email directly)
 @router_v1.post("/customers/", response_model=schemas.Customer, dependencies=[Depends(authenticate)], tags=["Customer Operations"])
 def create_customer(customer: schemas.CustomerCreate, db: Session = Depends(get_db)):
-    logger.info(f"Creating customer with email: {customer.email}")
+    # Log without exposing sensitive details
+    logger.info(f"Creating customer with masked email: {mask_email(customer.email)}")
     db_customer = crud.get_customer_by_email(db, email=customer.email)
     if db_customer:
-        logger.warning(f"Email already registered: {customer.email}")
+        logger.warning(f"Email already registered (masked): {mask_email(customer.email)}")
         raise HTTPException(status_code=400, detail="Email already registered")
     created_customer = crud.create_customer(db=db, customer=customer)
-    logger.info(f"Customer created: {created_customer.email}")
+    logger.info(f"Customer created (masked): {mask_email(created_customer.email)}")
     return created_customer
 
 # GET: Retrieve all customers (with pagination)
@@ -113,18 +126,18 @@ def read_customer(customer_id: int, db: Session = Depends(get_db)):
     if not customer:
         logger.warning(f"Customer with ID {customer_id} not found")
         raise HTTPException(status_code=404, detail="Customer not found")
-    logger.info(f"Customer found: {customer.email}")
+    logger.info(f"Customer found: {mask_email(customer.email)}")
     return customer
 
 # GET: Retrieve a customer by email
 @router_v1.get("/customers/email/{email}", response_model=schemas.Customer, dependencies=[Depends(authenticate)], tags=["Customer Operations"])
 def read_customer_by_email(email: str, db: Session = Depends(get_db)):
-    logger.info(f"Retrieving customer with email: {email}")
+    logger.info(f"Retrieving customer with email: {mask_email(email)}")
     customer = crud.get_customer_by_email(db, email=email)
     if not customer:
-        logger.warning(f"Customer with email {email} not found")
+        logger.warning(f"Customer with email {mask_email(email)} not found")
         raise HTTPException(status_code=404, detail="Customer not found")
-    logger.info(f"Customer found: {customer.email}")
+    logger.info(f"Customer found (masked): {mask_email(customer.email)}")
     return customer
 
 # PUT: Update a customer by ID
@@ -136,7 +149,7 @@ def update_customer(customer_id: int, customer: schemas.CustomerUpdate, db: Sess
         logger.warning(f"Customer with ID {customer_id} not found")
         raise HTTPException(status_code=404, detail="Customer not found")
     updated_customer = crud.update_customer(db=db, customer_id=customer_id, customer=customer)
-    logger.info(f"Customer updated: {updated_customer.email}")
+    logger.info(f"Customer updated (masked): {mask_email(updated_customer.email)}")
     return updated_customer
 
 # DELETE: Remove a customer by ID
