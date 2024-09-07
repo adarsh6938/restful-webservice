@@ -10,6 +10,7 @@ from app.database import SessionLocal, engine
 from prometheus_fastapi_instrumentator import Instrumentator
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.resources import Resource
 from opentelemetry.exporter.jaeger.thrift import JaegerExporter
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
@@ -79,7 +80,12 @@ def get_db():
 
 # Instrumentation for metrics and tracing
 Instrumentator().instrument(app).expose(app, endpoint="/metrics")
-provider = TracerProvider()
+
+# Set the service name explicitly
+resource = Resource.create({"service.name": "APIpotamus"})
+
+# Tracing provider setup
+provider = TracerProvider(resource=resource)
 jaeger_exporter = JaegerExporter(
     agent_host_name="localhost",  # Ensure this hostname is correct
     agent_port=6831

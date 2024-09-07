@@ -1,0 +1,14 @@
+global:
+  scrape_interval: 15s  # How often to scrape targets
+  evaluation_interval: 15s  # How often to evaluate rules
+
+scrape_configs:
+  # Scrape configuration for the FastAPI service
+  - job_name: 'APIpotamus'  # Name of your service
+    metrics_path: '/metrics'  # The path to scrape metrics from
+    static_configs:
+      - targets: ['host.docker.internal:8000']  # Address of the FastAPI app (update as needed)
+
+  - job_name: 'node_exporter'
+    static_configs:
+      - targets: ['host.docker.internal:9100']
