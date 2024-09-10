@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: customer-service
+  namespace: docker-registry
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: customer-service
+  template:
+    metadata:
+      labels:
+        app: customer-service
+    spec:
+      containers:
+      - name: customer-service
+        image: localhost:32000/customer-service-api:latest  # Use the image from your private registry
+        ports:
+        - containerPort: 8000  # The port your FastAPI app runs on
+        env:
+          - name: DATABASE_URL
+            value: "postgresql://customeruser:password@postgres:5432/customerdb"

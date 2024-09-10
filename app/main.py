@@ -82,12 +82,12 @@ def get_db():
 Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 
 # Set the service name explicitly
-resource = Resource.create({"service.name": "APIpotamus"})
+resource = Resource.create({"service.name": "Customer Service API"})
 
 # Tracing provider setup
 provider = TracerProvider(resource=resource)
 jaeger_exporter = JaegerExporter(
-    agent_host_name="localhost",  # Ensure this hostname is correct
+    agent_host_name="host.docker.internal",  # Ensure this hostname is correct
     agent_port=6831
 )
 span_processor = BatchSpanProcessor(jaeger_exporter)
