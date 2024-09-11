@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: customer-service
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: customer-service
+  template:
+    metadata:
+      labels:
+        app: customer-service
+    spec:
+      containers:
+        - name: customer-service
+          image: "{{ .Values.image.customerApi.repository }}:{{ .Values.image.customerApi.tag }}"
+          imagePullPolicy: {{ .Values.image.customerApi.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.service.customerPort }}
+          env:
+            - name: DATABASE_URL
+              value: "postgresql://customeruser:password@postgres:5432/customerdb"

@@ -18,7 +18,94 @@ This is a customer management REST API built using Python's FastAPI framework. T
 - **Docker**: Docker is required to build images and work with Kubernetes.
 - **PostgreSQL**: The application uses PostgreSQL, which is deployed in Kubernetes.
 
-# Private Docker Registry Setup, Customer API Deployment and postgres v17 database deployment in Kubernetes
+
+# Customer API and Postgres deployment using Helm Chart
+
+This Helm chart is used to deploy the Customer API and Postgres database on a Kubernetes cluster. The Docker images are pulled from a private Docker registry hosted at `http://localhost:32000`.
+
+
+## Files Included
+
+The following files are part of this project:
+
+- `Chart.yaml`: The main Helm chart definition file.
+- `values.yaml`: Default values used for the Helm chart.
+- `templates/app-deployment.yaml`: Kubernetes deployment for the Customer API.
+- `templates/app-service.yaml`: Kubernetes service for the Customer API.
+- `templates/postgres-deployment.yaml`: Kubernetes deployment for Postgres.
+- `templates/postgres-service.yaml`: Kubernetes service for Postgres.
+- `templates/postgres-pv-pvc.yaml`: Kubernetes PersistentVolume and PersistentVolumeClaim for Postgres.
+
+## Prerequisites
+
+Before deploying, ensure the following prerequisites are met:
+
+- A running Kubernetes cluster.
+- Helm installed on your system.
+- A private Docker registry set up at `http://localhost:32000` (without authentication).
+- Docker images for `customer-service-api` and `postgres` pushed to the registry.
+
+## Installation
+
+To deploy the Customer API and Postgres services to your Kubernetes cluster, follow these steps:
+
+1. **Package the Helm chart:**
+
+    ```bash
+    helm package customer-api-chart
+    ```
+
+2. **Install the Helm chart:**
+
+    ```bash
+    helm install customer-api ./customer-api-chart
+    ```
+
+    This will deploy both the Customer API and Postgres database from your private Docker registry to the `docker-registry` namespace in Kubernetes.
+
+### Namespace
+
+By default, the Helm chart will deploy into the `docker-registry` namespace. If you need to deploy into a different namespace, either modify the `values.yaml` file or specify the namespace in the `helm install` command using the `--namespace` flag:
+
+```bash
+helm install customer-api ./customer-api-chart --namespace my-namespace
+```
+
+## Configuration
+
+You can modify the default values for the deployment by editing the `values.yaml` file. This file contains configuration options such as:
+
+- Image repository
+- Tag
+- Service type
+- Resource limits
+
+Update the values based on your environment and requirements before deploying.
+
+## Notes
+
+- Ensure that the Docker images for the Customer API and Postgres are available in your private Docker registry at `http://localhost:32000` before running the deployment.
+- This Helm chart is currently configured to work with a Docker registry that does not require authentication.
+- If your Kubernetes cluster uses a different network setup or registry location, update the values in `values.yaml` accordingly.
+
+## Troubleshooting
+
+If you encounter issues during deployment, ensure the following:
+
+- The Kubernetes cluster is running and accessible.
+- Helm is properly installed and configured.
+- The Docker registry is running and contains the required images.
+- The correct namespace is being used during the installation.
+
+You can view the logs for the Customer API and Postgres services using `kubectl`:
+
+```bash
+kubectl logs -l app=customer-api -n docker-registry
+kubectl logs -l app=postgres -n docker-registry
+```
+
+
+# Private Docker Registry Setup, Customer API Deployment and postgres v17 database deployment in Kubernetes (Manual method)
 
 This guide will help you deploy a private Docker registry on Kubernetes and build, tag, and push the Customer API app and PostgreSQL 17rc1 images to the registry. After that, you will deploy both to Kubernetes using the private registry.
 

@@ -1,0 +1,23 @@
+replicaCount: 1
+
+image:
+  customerApi:
+    repository: localhost:32000/customer-service-api
+    tag: latest
+    pullPolicy: IfNotPresent
+  postgres:
+    repository: localhost:32000/postgres
+    tag: 17rc1
+    pullPolicy: IfNotPresent
+
+service:
+  customerPort: 8000
+  postgresPort: 5432
+  customerNodePort: 32001
+  postgresNodePort: 32002
+
+persistentVolume:
+  postgresStorage: 1Gi
+  accessMode: ReadWriteOnce
+
+namespace: docker-registry

@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: customer-service
+  namespace: {{ .Values.namespace }}
+spec:
+  type: NodePort
+  ports:
+    - port: {{ .Values.service.customerPort }}
+      targetPort: {{ .Values.service.customerPort }}
+      nodePort: {{ .Values.service.customerNodePort }}
+  selector:
+    app: customer-service

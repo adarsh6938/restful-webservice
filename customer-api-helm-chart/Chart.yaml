@@ -1,0 +1,4 @@
+apiVersion: v2
+name: customer-api-chart
+description: A Helm chart for deploying customer API and Postgres from a private Docker registry
+version: 0.1.0
